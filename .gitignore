@@ -1,0 +1,5 @@
+.DS_Store
+*Zone.Identifier*
+.bare/
+.vscode
+idea
