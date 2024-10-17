@@ -497,7 +497,6 @@ read_block() {
         # Check if we can exit the block
         if [ "$depth" -lt 0 ]; then
             next_line # consume "end;"
-            interpreter_debug "Finished block section, consuming target '$pattern'"
             return 0
         elif [ "$depth" -le 0 ] && echo "$block_line" | grep "$pattern" >/dev/null; then
             # Don't consume custom targets
@@ -553,6 +552,7 @@ interpret() {
                 while test_predicate "$predicate"; do
                     call_self "$path"
                 done
+                interpret && return
             ;;
             "if "*)
                 path="$(get_block_name "if")"
@@ -582,11 +582,13 @@ interpret() {
                 done
                 # Delete last generated executable if it's blank
                 [ -z "$(cat "$path")" ] && rm "$path"
+                interpret && return
             ;;
             "function "*)
                 name="$(echo "$line" | trim_line | sed 's/function \(.*\) do/\1/')"
                 [ -z "$name" ] && interpreter_die "Invalid function name '$name'"
                 read_block > "$FULL_PATH/$name.$EXTENSION"
+                interpret && return
             ;;
             "set "*)
                 set_var "$(echo "$line" | nth_arg 2)" "$(evaluate_format "$(echo "$line" | nth_arg 3-)")"
@@ -614,7 +616,7 @@ interpret() {
 # Start
 if [ "$TIME_EXECUTION" -eq 0 ]; then
     interpret
-    debug "Done"
+    interpreter_debug "Done"
 else
     start="$(get_millis)"
     interpret
